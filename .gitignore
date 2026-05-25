@@ -1,0 +1,6 @@
+frontend/.vscode/
+frontend/.vs/
+
+.idea/
+.DS_Store
+Thumbs.db
