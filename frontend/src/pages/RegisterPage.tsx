@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { HiUser, HiMail, HiLockClosed, HiOfficeBuilding, HiTruck, HiPhone, HiLocationMarker, HiCreditCard, HiShieldCheck, HiClock, HiRefresh } from 'react-icons/hi';
 import { useNotification } from '../context/NotificationContext';
+import { publicAxios } from '../api/axios';
 
 type RoleType = 'CUSTOMER' | 'SELLER' | 'DELIVERY_PARTNER' | 'ADMIN' | 'SUPPORT';
 
@@ -401,16 +402,9 @@ export default function RegisterPage() {
         delete cleanData.deliveryPartner;
       }
 
-      const response = await fetch('/api/public/users/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(cleanData),
-      });
+      try {
+        await publicAxios.post('/api/public/users/register', cleanData);
 
-      if (response.ok) {
         setShowOtpVerification(true);
         
         addNotification({
@@ -421,8 +415,8 @@ export default function RegisterPage() {
         
         // Clear any previous errors
         setErrors({});
-      } else {
-        const errorData = await response.json().catch(() => ({ message: 'Registration failed' }));
+      } catch (error: any) {
+        const errorData = error?.response?.data ?? { message: 'Registration failed' };
         const errorMessage = errorData.message || 'Registration failed';
         setErrors({ submit: errorMessage });
         
@@ -475,48 +469,33 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/public/users/verify-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ email: formData.email, code: otpCode }),
+      await publicAxios.post('/api/public/users/verify-otp', {
+        email: formData.email,
+        code: otpCode
       });
 
-      if (response.ok) {
-        addNotification({
-          type: 'success',
-          title: 'Email Verified Successfully!',
-          message: 'Your account has been created. You can now login.'
-        });
-        
-        // Clear any existing errors
-        setErrors({ otp: '' });
-        
-        // Redirect to login page after a brief delay
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 1500);
-      } else {
-        const errorData = await response.json();
-        const errorMessage = errorData.message || 'Invalid OTP';
-        setErrors({ otp: errorMessage });
-        
-        addNotification({
-          type: 'error',
-          title: 'Verification Failed',
-          message: errorMessage
-        });
-      }
-    } catch (error) {
-      const errorMessage = 'Network error. Please try again.';
+      addNotification({
+        type: 'success',
+        title: 'Email Verified Successfully!',
+        message: 'Your account has been created. You can now login.'
+      });
+      
+      // Clear any existing errors
+      setErrors({ otp: '' });
+      
+      // Redirect to login page after a brief delay
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 1500);
+    } catch (error: any) {
+      const errorData = error?.response?.data ?? {};
+      const errorMessage = errorData.message || 'Invalid OTP';
       setErrors({ otp: errorMessage });
       
       addNotification({
         type: 'error',
-        title: 'Network Error',
-        message: 'Unable to verify OTP. Please check your connection and try again.'
+        title: 'Verification Failed',
+        message: errorMessage
       });
     } finally {
       setLoading(false);
@@ -535,56 +514,41 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/public/users/resend-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ email: formData.email, code: '' }),
+      await publicAxios.post('/api/public/users/resend-otp', {
+        email: formData.email,
+        code: ''
       });
 
-      if (response.ok) {
-        addNotification({
-          type: 'success',
-          title: 'OTP Resent Successfully!',
-          message: `A new verification code has been sent to ${formData.email}`
+      addNotification({
+        type: 'success',
+        title: 'OTP Resent Successfully!',
+        message: `A new verification code has been sent to ${formData.email}`
+      });
+      
+      setErrors({ otp: '' });
+      setOtpCode(''); // Clear the current OTP input
+      
+      // Start cooldown timer
+      setResendCooldown(60);
+      const timer = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
         });
-        
-        setErrors({ otp: '' });
-        setOtpCode(''); // Clear the current OTP input
-        
-        // Start cooldown timer
-        setResendCooldown(60);
-        const timer = setInterval(() => {
-          setResendCooldown((prev) => {
-            if (prev <= 1) {
-              clearInterval(timer);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-        
-      } else {
-        const errorData = await response.json();
-        const errorMessage = errorData.message || 'Failed to resend OTP';
-        setErrors({ otp: errorMessage });
-        
-        addNotification({
-          type: 'error',
-          title: 'Resend Failed',
-          message: errorMessage
-        });
-      }
-    } catch (error) {
-      const errorMessage = 'Network error. Please try again.';
+      }, 1000);
+      
+    } catch (error: any) {
+      const errorData = error?.response?.data ?? {};
+      const errorMessage = errorData.message || 'Failed to resend OTP';
       setErrors({ otp: errorMessage });
       
       addNotification({
         type: 'error',
-        title: 'Network Error',
-        message: 'Unable to resend OTP. Please check your connection and try again.'
+        title: 'Resend Failed',
+        message: errorMessage
       });
     } finally {
       setLoading(false);
@@ -597,11 +561,9 @@ export default function RegisterPage() {
 
     setEmailChecking(true);
     try {
-      const response = await fetch(`/api/public/users/check-email?email=${encodeURIComponent(email)}`);
-      if (response.ok) {
-        const result = await response.json();
-        // API returns: data === true (exists) or false (available)
-        setEmailAvailable(!result.data); // Invert: true means NOT available
+      const result = await publicAxios.get<{ data: boolean }>(`/api/public/users/check-email?email=${encodeURIComponent(email)}`);
+      if (result?.data && typeof result.data.data !== 'undefined') {
+        setEmailAvailable(!result.data.data);
       } else {
         setEmailAvailable(null);
       }
@@ -618,11 +580,9 @@ export default function RegisterPage() {
 
     setUsernameChecking(true);
     try {
-      const response = await fetch(`/api/public/users/check-username?username=${encodeURIComponent(username)}`);
-      if (response.ok) {
-        const result = await response.json();
-        // API returns: data === true (exists) or false (available)
-        setUsernameAvailable(!result.data); // Invert: true means NOT available
+      const result = await publicAxios.get<{ data: boolean }>(`/api/public/users/check-username?username=${encodeURIComponent(username)}`);
+      if (result?.data && typeof result.data.data !== 'undefined') {
+        setUsernameAvailable(!result.data.data);
       } else {
         setUsernameAvailable(null);
       }

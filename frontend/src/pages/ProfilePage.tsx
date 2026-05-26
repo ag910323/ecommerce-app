@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
+import api from '../api/axios';
 import {
   HiUser,
   HiMail,
@@ -124,40 +125,25 @@ export default function ProfilePage() {
     if (!validateEditForm()) return;
 
     try {
-      const response = await fetch('/api/users/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          firstName: editFormData.firstName,
-          lastName: editFormData.lastName,
-          username: editFormData.username,
-        }),
+      await api.put('/api/users/profile', {
+        firstName: editFormData.firstName,
+        lastName: editFormData.lastName,
+        username: editFormData.username,
       });
 
-      if (response.ok) {
-        addNotification({
-          type: 'success',
-          title: 'Profile Updated',
-          message: 'Your profile has been updated successfully.',
-        });
-        setIsEditing(false);
-        // Refresh user data would happen here in a real app
-      } else {
-        const errorData = await response.json().catch(() => ({ message: 'Update failed' }));
-        addNotification({
-          type: 'error',
-          title: 'Update Failed',
-          message: errorData.message || 'Failed to update profile.',
-        });
-      }
-    } catch (error) {
+      addNotification({
+        type: 'success',
+        title: 'Profile Updated',
+        message: 'Your profile has been updated successfully.',
+      });
+      setIsEditing(false);
+      // Refresh user data would happen here in a real app
+    } catch (error: any) {
+      const errorData = error?.response?.data ?? { message: 'Update failed' };
       addNotification({
         type: 'error',
-        title: 'Network Error',
-        message: 'Unable to update profile. Please try again.',
+        title: 'Update Failed',
+        message: errorData.message || 'Failed to update profile.',
       });
     }
   };
@@ -201,36 +187,25 @@ export default function ProfilePage() {
     if (!validateAddressForm()) return;
 
     try {
-      const response = await fetch(`/api/addresses${editingAddressIndex !== null ? `/${user.addresses[editingAddressIndex].id}` : ''}`, {
-        method: editingAddressIndex !== null ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(editAddressFormData),
-      });
-
-      if (response.ok) {
-        addNotification({
-          type: 'success',
-          title: 'Address Updated',
-          message: editingAddressIndex !== null ? 'Address updated successfully.' : 'New address added successfully.',
-        });
-        handleAddressEditCancel();
-        // Refresh would happen here in a real app
+      if (editingAddressIndex !== null) {
+        await api.put(`/api/addresses/${user.addresses[editingAddressIndex].id}`, editAddressFormData);
       } else {
-        const errorData = await response.json().catch(() => ({ message: 'Operation failed' }));
-        addNotification({
-          type: 'error',
-          title: 'Operation Failed',
-          message: errorData.message || 'Failed to save address.',
-        });
+        await api.post('/api/addresses', editAddressFormData);
       }
-    } catch (error) {
+
+      addNotification({
+        type: 'success',
+        title: 'Address Updated',
+        message: editingAddressIndex !== null ? 'Address updated successfully.' : 'New address added successfully.',
+      });
+      handleAddressEditCancel();
+      // Refresh would happen here in a real app
+    } catch (error: any) {
+      const errorData = error?.response?.data ?? { message: 'Operation failed' };
       addNotification({
         type: 'error',
-        title: 'Network Error',
-        message: 'Unable to save address. Please try again.',
+        title: 'Operation Failed',
+        message: errorData.message || 'Failed to save address.',
       });
     }
   };
@@ -240,27 +215,14 @@ export default function ProfilePage() {
 
     try {
       const addressId = user.addresses[index].id;
-      const response = await fetch(`/api/addresses/${addressId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      await api.delete(`/api/addresses/${addressId}`);
 
-      if (response.ok) {
-        addNotification({
-          type: 'success',
-          title: 'Address Deleted',
-          message: 'Address deleted successfully.',
-        });
-        // Refresh would happen here
-      } else {
-        addNotification({
-          type: 'error',
-          title: 'Delete Failed',
-          message: 'Failed to delete address.',
-        });
-      }
+      addNotification({
+        type: 'success',
+        title: 'Address Deleted',
+        message: 'Address deleted successfully.',
+      });
+      // Refresh would happen here
     } catch (error) {
       addNotification({
         type: 'error',
