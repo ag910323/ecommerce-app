@@ -16,6 +16,7 @@ export default function ProductCarousel({
   variant,
   source
 }: ProductCarouselProps) {
+  const safeProducts = Array.isArray(products) ? products : [];
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -45,7 +46,7 @@ export default function ProductCarousel({
     const handleResize = () => checkScrollButtons();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [products]);
+  }, [safeProducts]);
 
   const scrollLeft = () => {
     if (scrollRef.current) {
@@ -73,7 +74,7 @@ export default function ProductCarousel({
     );
   }
 
-  if (products.length === 0) {
+  if (!Array.isArray(products) || safeProducts.length === 0) {
     return null;
   }
 
@@ -111,7 +112,7 @@ export default function ProductCarousel({
           msOverflowStyle: 'none'
         }}
       >
-        {products.map((product) => (
+        {safeProducts.map((product) => (
           <div key={product.id} className="flex-shrink-0 w-72 h-full">
             <ProductCard
               product={product}

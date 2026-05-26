@@ -8,6 +8,61 @@ import type {
   PagedResponse
 } from '../types';
 
+const unwrapApiPayload = <T>(response: unknown): T | undefined => {
+  if (!response || typeof response !== 'object') return undefined;
+  const body = (response as any).data ?? response;
+  return body as T;
+};
+
+const normalizeArrayResponse = <T>(payload: unknown): T[] => {
+  const body = unwrapApiPayload<unknown>(payload);
+  if (Array.isArray(body)) return body as T[];
+  if (body && typeof body === 'object') {
+    if (Array.isArray((body as any).data)) return (body as any).data as T[];
+    if (Array.isArray((body as any).content)) return (body as any).content as T[];
+  }
+  return [];
+};
+
+const normalizePagedResponse = <T>(payload: unknown): PagedResponse<T> => {
+  const body = unwrapApiPayload<unknown>(payload);
+  if (Array.isArray(body)) {
+    return {
+      content: body as T[],
+      page: 0,
+      size: body.length,
+      totalElements: body.length,
+      totalPages: body.length > 0 ? 1 : 0
+    };
+  }
+
+  if (!body || typeof body !== 'object') {
+    return {
+      content: [],
+      page: 0,
+      size: 0,
+      totalElements: 0,
+      totalPages: 0
+    };
+  }
+
+  const content = Array.isArray((body as any).content)
+    ? (body as any).content as T[]
+    : Array.isArray((body as any).data)
+      ? (body as any).data as T[]
+      : [];
+
+  return {
+    content,
+    page: typeof (body as any).page === 'number' ? (body as any).page : 0,
+    size: typeof (body as any).size === 'number' ? (body as any).size : content.length,
+    totalElements: typeof (body as any).totalElements === 'number' ? (body as any).totalElements : content.length,
+    totalPages: typeof (body as any).totalPages === 'number' ? (body as any).totalPages : (content.length > 0 ? 1 : 0),
+    first: (body as any).first,
+    last: (body as any).last
+  };
+};
+
 export const productApi = {
   // Create a new product (SELLER only)
   createProduct: async (productData: ProductRequest): Promise<ProductResponse> => {
@@ -20,7 +75,7 @@ export const productApi = {
     console.log('Making API call to /api/public/products');
     const response = await publicAxios.get<ApiResponse<ProductResponse[]>>('/api/public/products');
     console.log('API response:', response.data);
-    return response.data.data;
+    return normalizeArrayResponse<ProductResponse>(response.data);
   },
 
   // Search products (public)
@@ -28,7 +83,7 @@ export const productApi = {
     console.log('Making API call to /api/public/products?search=' + searchQuery);
     const response = await publicAxios.get<ApiResponse<ProductResponse[]>>(`/api/public/products?search=${encodeURIComponent(searchQuery)}`);
     console.log('Search API response:', response.data);
-    return response.data.data;
+    return normalizeArrayResponse<ProductResponse>(response.data);
   },
 
 
@@ -52,25 +107,25 @@ export const productApi = {
   // Get products by seller (for seller's own products)
   getProductsBySeller: async (sellerId: number): Promise<ProductResponse[]> => {
     const response = await axios.get<ApiResponse<ProductResponse[]>>(`/api/products?sellerId=${sellerId}`);
-    return response.data.data;
+    return normalizeArrayResponse<ProductResponse>(response.data);
   },
 
   // Get products by category (for customers)
   getProductsByCategory: async (categoryId: number): Promise<ProductResponse[]> => {
     const response = await publicAxios.get<ApiResponse<ProductResponse[]>>(`/api/public/products/category/${categoryId}`);
-    return response.data.data;
+    return normalizeArrayResponse<ProductResponse>(response.data);
   },
 
   // Get featured products (public) - you can implement this endpoint later
   getFeaturedProducts: async (): Promise<ProductResponse[]> => {
     const response = await publicAxios.get<ApiResponse<ProductResponse[]>>('/api/public/products/featured');
-    return response.data.data;
+    return normalizeArrayResponse<ProductResponse>(response.data);
   },
 
   // Filter products with pagination (public)
   filterProducts: async (filterRequest: ProductFilterRequest, config?: any): Promise<PagedResponse<ProductResponse>> => {
     const response = await publicAxios.post<ApiResponse<PagedResponse<ProductResponse>>>('/api/public/products/filter', filterRequest, config);
-    return response.data.data;
+    return normalizePagedResponse<ProductResponse>(response.data);
   },
 
   // Filter seller products (for seller's own products with filters) - Use secure endpoint
@@ -80,7 +135,7 @@ export const productApi = {
       sellerId: sellerId
     };
     const response = await axios.post<ApiResponse<PagedResponse<ProductResponse>>>('/api/products/filter', requestWithSellerId);
-    return response.data.data;
+    return normalizePagedResponse<ProductResponse>(response.data);
   },
 
   // Get sponsored products with filtering (public) - NEW API
@@ -102,13 +157,13 @@ export const productApi = {
       defaultRequest
     );
     console.log('Sponsored products API response:', response.data);
-    return response.data.data;
+    return normalizePagedResponse<ProductResponse>(response.data);
   },
 
   // Get seller's sponsored products
   getSellerSponsoredProducts: async (sellerId: number): Promise<ProductResponse[]> => {
     const response = await axios.get<ApiResponse<ProductResponse[]>>(`/api/products/seller/${sellerId}/sponsored`);
-    return response.data.data;
+    return normalizeArrayResponse<ProductResponse>(response.data);
   },
 
   // Update product sponsorship
@@ -132,7 +187,7 @@ export const productApi = {
     console.log('Making API call to /api/public/products/sponsored');
     const response = await publicAxios.get<ApiResponse<PagedResponse<ProductResponse>>>('/api/public/products/sponsored');
     console.log('Sponsored products API response:', response.data);
-    return response.data.data;
+    return normalizePagedResponse<ProductResponse>(response.data);
   },
 
   // Get deals products (public)
@@ -142,7 +197,7 @@ export const productApi = {
       pagination: { page: 0, size: 8 }
     });
     console.log('Deals products API response:', response.data);
-    return response.data.data;
+    return normalizePagedResponse<ProductResponse>(response.data);
   },
 
   // Get trending products (public)
@@ -152,7 +207,7 @@ export const productApi = {
       pagination: { page: 0, size: 8 }
     });
     console.log('Trending products API response:', response.data);
-    return response.data.data;
+    return normalizePagedResponse<ProductResponse>(response.data);
   },
 
   // Get recommended products (public)
@@ -162,7 +217,7 @@ export const productApi = {
       pagination: { page: 0, size: 8 }
     });
     console.log('Recommended products API response:', response.data);
-    return response.data.data;
+    return normalizePagedResponse<ProductResponse>(response.data);
   },
 
   // Get recent browsed products (authenticated users only)
@@ -172,7 +227,7 @@ export const productApi = {
       userId
     });
     console.log('Recent browsed products API response:', response.data);
-    return response.data.data;
+    return normalizeArrayResponse<ProductResponse>(response.data);
   },
 
   // Track product click (fire and forget)
