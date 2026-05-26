@@ -82,7 +82,7 @@ public class SecurityConfig {
 		CorsConfiguration config = new CorsConfiguration();
 		config.setAllowCredentials(true);
 		config.setAllowedOrigins(
-				List.of("http://localhost:5173", "http://127.0.0.1:5173", "https://your-frontend.vercel.app"));
+				List.of("http://localhost:5173", "http://127.0.0.1:5173", "https://ecommerce-app-kappa-ten.vercel.app/"));
 		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		config.setAllowedHeaders(List.of("*"));
 
