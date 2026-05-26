@@ -28,7 +28,7 @@ export default function ProductDetailsPage() {
   const [addingToWishlist, setAddingToWishlist] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<VariantResponse | null>(null);
-  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
+  const [, setSelectedAttributes] = useState<Record<string, string>>({});
   const parseDescription = (description: string) => {
     if (!description) return [];
     
