@@ -151,16 +151,18 @@ public class ProductServiceImpl implements ProductService {
         product.setBrand(brand);
         
         if (request.getImageUrls() != null) {
+
             product.getImages().clear();
 
-            product.setImages(
-                request.getImageUrls().stream()
-                    .map(url -> ProductImage.builder()
-                        .product(product)
-                        .imageUrl(url)
-                        .build()
-                    ).collect(Collectors.toList())
-            );
+            List<ProductImage> newImages = request.getImageUrls().stream()
+                .map(url -> ProductImage.builder()
+                    .product(product)
+                    .imageUrl(url.trim())
+                    .build()
+                )
+                .collect(Collectors.toList());
+
+            product.getImages().addAll(newImages);
         }
         
      // ✅ Handle Variants Update (Replace Strategy - Safe)

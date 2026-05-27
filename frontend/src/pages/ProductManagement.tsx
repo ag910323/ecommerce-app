@@ -1097,6 +1097,15 @@ export default function ProductManagement() {
                                   }`} />
                                 </button>
                                 <button
+                                  onClick={() => navigate(`/seller/products/edit/${product.id}`)}
+                                  className="p-1 bg-white transition-all duration-200 text-blue-600 hover:text-blue-700 shadow-sm hover:shadow-md"
+                                  title="Edit product"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M16.5 3.5l4 4L12 16l-4 1 1-4 8.5-8.5z" />
+                                  </svg>
+                                </button>
+                                <button
                                   onClick={() => handleDelete(product.id, product.name)}
                                   className="text-red-500 hover:text-red-600 p-1 bg-white transition-colors"
                                   style={{ backgroundColor: 'white', color: '#dc2626' }}

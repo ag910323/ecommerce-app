@@ -18,6 +18,7 @@ import DeliveryDashboard from "./pages/DeliveryDashboard.tsx";
 import CategoryManagement from "./pages/CategoryManagement.tsx";
 import ProductManagement from "./pages/ProductManagement.tsx";
 import AddProductPage from "./pages/AddProductPage.tsx";
+import EditProductPage from "./pages/EditProductPage.tsx";
 import CategoryProductsPage from "./pages/CategoryProductsPage.tsx";
 import ProductDetailsPage from "./pages/ProductDetailsPage.tsx";
 import BrandPartnerships from "./pages/BrandPartnerships.tsx";
@@ -120,6 +121,10 @@ export default function App() {
                 <Route
                   path="/seller/products/add"
                   element={<AddProductPage />}
+                />
+                <Route
+                  path="/seller/products/edit/:id"
+                  element={<EditProductPage />}
                 />
                 <Route
                   path="/seller/products"
