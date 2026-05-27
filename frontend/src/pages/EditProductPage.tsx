@@ -6,7 +6,7 @@ import { brandApi, type BrandResponse } from '../api/brandApi';
 import { useCategories } from '../context/CategoryContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
-import type { ProductRequest, PartnershipLevel } from '../types';
+import type { ProductRequest } from '../types';
 import { PRODUCT_STATUS } from '../types';
 import Header from './Header';
 import CategoryBar from './CategoryBar';
@@ -51,14 +51,7 @@ export default function EditProductPage() {
   const [fetching, setFetching] = useState(true); // initial fetch loading
   const [error, setError] = useState<string>('');
 
-  // UI state for collapsible sections
-  const [expandedSections, setExpandedSections] = useState({
-    sponsorship: false,
-    brand: false,
-    attributes: false,
-    images: false,
-    variants: false
-  });
+  // UI state for collapsible sections (not used in this page)
 
   // Step wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -79,21 +72,16 @@ export default function EditProductPage() {
   const [brands, setBrands] = useState<BrandResponse[]>([]);
   const [brandsLoading, setBrandsLoading] = useState(true);
 
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
-
   // Attribute handlers (reuse from AddProductPage)
   const addAttribute = () => setAttributes(prev => [...prev, { key: '', value: '' }]);
-  const removeAttribute = (index: number) => setAttributes(prev => prev.filter((_, i) => i !== index));
   const updateAttribute = (index: number, field: 'key' | 'value', value: string) => {
     setAttributes(prev => prev.map((attr, i) => i === index ? { ...attr, [field]: value } : attr));
   };
 
   // Image URL handlers
   const addImageUrl = () => setImageUrls(prev => [...prev, '']);
-  const removeImageUrl = (index: number) => setImageUrls(prev => prev.filter((_, i) => i !== index));
-  const updateImageUrl = (index: number, value: string) => setImageUrls(prev => prev.map((url, i) => i === index ? value : url));
+  const removeImageUrl = (index: number) => setImageUrls(prev => prev.filter((_, i: number) => i !== index));
+  const updateImageUrl = (index: number, value: string) => setImageUrls(prev => prev.map((url, i: number) => i === index ? value : url));
 
   const isValidUrl = (value: string) => {
     if (!value.trim()) return false;
@@ -102,14 +90,8 @@ export default function EditProductPage() {
 
   // Variants handlers (basic reuse)
   const addVariant = () => setVariants(prev => [...prev, { variantName: '', price: 0, stockQuantity: 0, sku: '', images: [''], attributes: [{ key: '', value: '' }] }]);
-  const removeVariant = (index: number) => setVariants(prev => prev.filter((_, i) => i !== index));
   const updateVariant = (index: number, field: string, value: any) => setVariants(prev => prev.map((v, i) => i === index ? { ...v, [field]: value } : v));
-  const addVariantImage = (variantIndex: number) => setVariants(prev => prev.map((variant, i) => i === variantIndex ? { ...variant, images: [...variant.images, ''] } : variant));
-  const removeVariantImage = (variantIndex: number, imageIndex: number) => setVariants(prev => prev.map((variant, i) => i === variantIndex ? { ...variant, images: variant.images.filter((_, j) => j !== imageIndex) } : variant));
-  const updateVariantImage = (variantIndex: number, imageIndex: number, value: string) => setVariants(prev => prev.map((variant, i) => i === variantIndex ? { ...variant, images: variant.images.map((img, j) => j === imageIndex ? value : img) } : variant));
-  const addVariantAttribute = (variantIndex: number) => setVariants(prev => prev.map((variant, i) => i === variantIndex ? { ...variant, attributes: [...variant.attributes, { key: '', value: '' }] } : variant));
-  const removeVariantAttribute = (variantIndex: number, attrIndex: number) => setVariants(prev => prev.map((variant, i) => i === variantIndex ? { ...variant, attributes: variant.attributes.filter((_, j) => j !== attrIndex) } : variant));
-  const updateVariantAttribute = (variantIndex: number, attrIndex: number, field: 'key' | 'value', value: string) => setVariants(prev => prev.map((variant, i) => i === variantIndex ? { ...variant, attributes: variant.attributes.map((attr: any, j: number) => j === attrIndex ? { ...attr, [field]: value } : attr) } : variant));
+  // Variant attributes not used in Edit view
 
   // Step navigation reused
   const handleNext = async () => {
@@ -253,7 +235,7 @@ export default function EditProductPage() {
         images: v.images?.filter((u: string) => u.trim()) || []
       }));
 
-      const productData: Partial<ProductRequest> = {
+      const productData: Partial<ProductRequest> & { variants?: any[] } = {
         ...formData,
         sellerId: user?.sellerResponse?.id || formData.sellerId,
         attributes: attributesObject,
