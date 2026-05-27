@@ -1,6 +1,8 @@
 package com.shanti.store.marketplace.service;
 
+import com.shanti.store.marketplace.request.ForgotPasswordRequest;
 import com.shanti.store.marketplace.request.LoginRequest;
+import com.shanti.store.marketplace.request.ResetPasswordRequest;
 import com.shanti.store.marketplace.request.UserRegistrationRequest;
 import com.shanti.store.marketplace.request.VerifyRequest;
 import com.shanti.store.marketplace.response.LoginResponse;
@@ -15,4 +17,6 @@ public interface UserService {
 	void deleteUser(Long userId);
 	boolean existsByEmail(String email);
 	boolean existsByUsername(String username);
+	void forgotPassword(ForgotPasswordRequest request);
+	void resetPassword(ResetPasswordRequest request);
 }

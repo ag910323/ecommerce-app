@@ -42,7 +42,9 @@ import com.shanti.store.marketplace.repository.RoleRepository;
 import com.shanti.store.marketplace.repository.UserRepository;
 import com.shanti.store.marketplace.request.AddressRequest;
 import com.shanti.store.marketplace.request.DeliveryPartnerRequest;
+import com.shanti.store.marketplace.request.ForgotPasswordRequest;
 import com.shanti.store.marketplace.request.LoginRequest;
+import com.shanti.store.marketplace.request.ResetPasswordRequest;
 import com.shanti.store.marketplace.request.UserRegistrationRequest;
 import com.shanti.store.marketplace.request.VerifyRequest;
 import com.shanti.store.marketplace.response.LoginResponse;
@@ -321,4 +323,80 @@ public class UserServiceImpl implements UserService {
 	    return userRepository.existsByUsername(username);
 	}
 
+	@Override
+	@Transactional
+	public void forgotPassword(ForgotPasswordRequest request) {
+
+	    User user = userRepository.findByEmail(request.getEmail())
+	            .orElseThrow(() -> new VerificationException("User not found"));
+
+	    UserVerification verification = user.getVerification();
+
+	    if (verification == null) {
+	        throw new VerificationException("Verification details not found");
+	    }
+
+	    if (verification.getOtpSentAt() != null &&
+	            verification.getOtpSentAt()
+	                    .isAfter(LocalDateTime.now().minusMinutes(2))) {
+
+	        throw new VerificationException(
+	                "Please wait before requesting another OTP");
+	    }
+
+	    String otp = generateRandomCode();
+
+	    verification.setVerificationCode(otp);
+	    verification.setOtpSentAt(LocalDateTime.now());
+	    verification.setExpiryDateTime(LocalDateTime.now().plusMinutes(10));
+	    verification.setStatus(VerificationStatus.PENDING);
+
+	    userRepository.save(user);
+
+	    EmailDetails email = EmailDetails.builder()
+	            .to(user.getEmail())
+	            .subject("Reset Password OTP")
+	            .body("Your password reset OTP is " + otp +
+	                    ". It is valid for 10 minutes.")
+	            .isHtml(false)
+	            .build();
+
+	    emailService.sendEmail(email);
+	}
+	
+	@Override
+	@Transactional
+	public void resetPassword(ResetPasswordRequest request) {
+
+	    User user = userRepository.findByEmail(request.getEmail())
+	            .orElseThrow(() -> new VerificationException("User not found"));
+
+	    UserVerification verification = user.getVerification();
+
+	    if (verification == null) {
+	        throw new VerificationException("Verification details not found");
+	    }
+
+	    if (!verification.getVerificationCode()
+	            .equals(request.getOtp())) {
+
+	        throw new VerificationException("Invalid OTP");
+	    }
+
+	    if (verification.getExpiryDateTime()
+	            .isBefore(LocalDateTime.now())) {
+
+	        throw new VerificationException("OTP expired");
+	    }
+
+	    user.setPassword(
+	            passwordEncoder.encode(request.getNewPassword())
+	    );
+
+	    verification.setVerificationCode(null);
+	    verification.setExpiryDateTime(null);
+	    verification.setOtpSentAt(null);
+
+	    userRepository.save(user);
+	}
 }

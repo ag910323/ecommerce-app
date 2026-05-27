@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.shanti.store.marketplace.builder.ApiResponseBuilder;
+import com.shanti.store.marketplace.request.ForgotPasswordRequest;
+import com.shanti.store.marketplace.request.ResetPasswordRequest;
 import com.shanti.store.marketplace.request.UserRegistrationRequest;
 import com.shanti.store.marketplace.request.VerifyRequest;
 import com.shanti.store.marketplace.service.UserService;
@@ -59,4 +61,16 @@ public class PublicUserController {
         boolean exists = userService.existsByUsername(username);
         return ApiResponseBuilder.success(exists, exists ? "Username already exists" : "Username available");
     }
+    
+	@PostMapping("/forgot-password")
+	public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+		userService.forgotPassword(request);
+		return ApiResponseBuilder.success(null, "Password reset OTP sent successfully");
+	}
+
+	@PostMapping("/reset-password")
+	public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+		userService.resetPassword(request);
+		return ApiResponseBuilder.success(null, "Password reset successfully");
+	}
 }
